@@ -1,0 +1,1 @@
+export const VADODARA_CENTER = [22.3072, 73.1812];
