@@ -10,14 +10,16 @@ import { Button } from '../ui/Button';
 const mapContainerStyle = { height: '100%', width: '100%', zIndex: 10 };
 
 const severityColors = {
-  low: '#14b8a6',       // teal
-  medium: '#f59e0b',    // amber
-  high: '#f97316',      // orange
-  critical: '#dc2626'   // red
+  low: '#14b8a6',       // teal - Low
+  moderate: '#f59e0b',  // amber - Moderate
+  medium: '#f59e0b',    // backward compat
+  high: '#f97316',      // orange - High
+  critical: '#dc2626'   // red - Critical
 };
 
 const createMarkerIcon = (priorityLabel, isStale, isSelected) => {
-  const color = severityColors[priorityLabel] || severityColors.low;
+  const normalizedKey = (priorityLabel || 'low').toLowerCase();
+  const color = severityColors[normalizedKey] || severityColors.low;
   const opacity = isStale && !isSelected ? '0.5' : '1';
   const scale = isSelected ? 'transform: scale(1.3); z-index: 1000;' : '';
   const border = isSelected ? '4px solid white' : '2px solid white';
@@ -56,6 +58,13 @@ export function IncidentMap({ incidents, onReportClick, selectedIncidentId, onIn
     return <div className="h-full w-full flex items-center justify-center bg-surface-100 text-brand-700">Loading Map Intelligence...</div>;
   }
 
+  const getRiskBadgeVariant = (label) => {
+    const l = (label || '').toLowerCase();
+    if (l === 'critical' || l === 'high') return 'danger';
+    if (l === 'moderate' || l === 'medium') return 'warning';
+    return 'success';
+  };
+
   return (
     <div className="relative h-full w-full bg-surface-100 rounded overflow-hidden isolate border border-surface-200">
       <MapContainer center={VADODARA_CENTER} zoom={13} style={mapContainerStyle} zoomControl={true} scrollWheelZoom={false}>
@@ -68,7 +77,7 @@ export function IncidentMap({ incidents, onReportClick, selectedIncidentId, onIn
         
         {incidents.map((incident) => {
           if (!incident.lat || !incident.lng) return null;
-          const { score = 0, label = 'low', explanation = [], isStale = false } = incident._priority || {};
+          const { score = 0, label = 'Low', explanation = [], isStale = false } = incident._priority || {};
           const isSelected = incident.id === selectedIncidentId;
           
           return (
@@ -81,27 +90,29 @@ export function IncidentMap({ incidents, onReportClick, selectedIncidentId, onIn
               }}
             >
               <Popup className="incident-popup" closeButton={false} autoPanPadding={[20, 20]}>
-                <div className="w-64">
+                <div className="w-68 max-w-[280px]">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-heading font-semibold text-brand-900 leading-tight pr-2">{incident.title}</h4>
-                    <Badge variant={label === 'critical' || label === 'high' ? 'danger' : label === 'medium' ? 'warning' : 'success'}>
+                    <Badge variant={getRiskBadgeVariant(label)}>
                       {score} / 100
                     </Badge>
                   </div>
                   
                   <div className="space-y-1.5 mb-3 text-sm text-brand-700">
                     <div className="flex items-center justify-between border-b border-surface-200 pb-1 mb-1 text-xs">
-                      <span className="font-medium text-brand-900">Calculated Priority: <span className="capitalize">{label}</span></span>
-                      {isStale && <span className="text-accent-red font-medium">STALE</span>}
+                      <span className="font-medium text-brand-900">
+                        Urgency Level: <span className="font-semibold">{label}</span>
+                      </span>
+                      {isStale && <span className="text-accent-red font-semibold text-[10px] uppercase">STALE</span>}
                     </div>
 
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-3.5 h-3.5 opacity-70" />
-                      <span>Depth: {incident.depth} cm</span>
+                      <span>Depth: {typeof incident.depth === 'number' ? `${incident.depth} cm` : 'Unrecorded'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Activity className="w-3.5 h-3.5 opacity-70" />
-                      <span>Reported as: <span className="capitalize">{incident.severity}</span></span>
+                      <span>Reported Severity: <span className="capitalize">{incident.severity || 'Unspecified'}</span></span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-3.5 h-3.5 opacity-70" />
@@ -109,12 +120,21 @@ export function IncidentMap({ incidents, onReportClick, selectedIncidentId, onIn
                     </div>
                     
                     <div className="mt-2 p-2 bg-surface-50 rounded border border-surface-200 text-xs">
-                      <span className="font-medium text-brand-900 block mb-1">Scoring Breakdown:</span>
-                      <ul className="list-disc pl-4 space-y-0.5 text-brand-700/80">
-                        {explanation.map((exp, i) => (
-                          <li key={i}>{exp}</li>
-                        ))}
+                      <div className="flex items-center justify-between font-semibold text-brand-900 mb-1">
+                        <span>Heuristic Scoring Factors:</span>
+                      </div>
+                      <ul className="list-disc pl-4 space-y-0.5 text-brand-700/80 text-[11px]">
+                        {explanation.length > 0 ? (
+                          explanation.map((exp, i) => (
+                            <li key={i}>{exp}</li>
+                          ))
+                        ) : (
+                          <li>Standard baseline priority</li>
+                        )}
                       </ul>
+                      <div className="mt-1.5 pt-1.5 border-t border-surface-200/60 text-[10px] text-brand-500 italic">
+                        * Heuristic prioritization aid. Not an official hydrological flood forecast.
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">
@@ -143,14 +163,17 @@ export function IncidentMap({ incidents, onReportClick, selectedIncidentId, onIn
       </MapContainer>
 
       {!selectedIncidentId && (
-        <div className="absolute bottom-4 right-4 z-[400] bg-white p-3 rounded shadow-sm border border-surface-200 text-xs">
-          <h5 className="font-medium text-brand-900 mb-2 uppercase tracking-wide">Sys. Priority</h5>
+        <div className="absolute bottom-4 right-4 z-[400] bg-white p-2.5 sm:p-3 rounded shadow-sm border border-surface-200 text-xs hidden sm:block">
+          <h5 className="font-semibold text-brand-900 mb-2 uppercase tracking-wider text-[10px]">Flood Risk Urgency</h5>
           <ul className="space-y-1.5">
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-accent-teal border border-surface-100"></span> Low</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-accent-amber border border-surface-100"></span> Medium</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500 border border-surface-100"></span> High</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-accent-red border border-surface-100"></span> Critical</li>
+            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-accent-teal border border-surface-100"></span> Low (0–24)</li>
+            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-accent-amber border border-surface-100"></span> Moderate (25–49)</li>
+            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500 border border-surface-100"></span> High (50–74)</li>
+            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-accent-red border border-surface-100"></span> Critical (75–100)</li>
           </ul>
+          <div className="mt-2 pt-1.5 border-t border-surface-200 text-[9px] text-brand-400">
+            Heuristic civic priority index
+          </div>
         </div>
       )}
 

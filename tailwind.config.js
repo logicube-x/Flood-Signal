@@ -28,9 +28,34 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        editorial: ['Newsreader', 'serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Display"',
+          '"SF Pro Text"',
+          '"SF Pro"',
+          'Inter',
+          'system-ui',
+          'sans-serif'
+        ],
+        editorial: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Display"',
+          '"SF Pro Text"',
+          '"SF Pro"',
+          'Inter',
+          'sans-serif'
+        ],
+        mono: [
+          '"SF Mono"',
+          'SFMono-Regular',
+          'ui-monospace',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          'monospace'
+        ],
       },
       boxShadow: {
         'subtle': '0 1px 2px 0 rgba(15, 23, 42, 0.05)',

@@ -17,6 +17,7 @@ import {
 import { IncidentMap } from '../components/map/IncidentMap';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { BrandLogo } from '../components/ui/BrandLogo';
 
 export function Landing({ 
   onExploreMap, 
@@ -28,7 +29,7 @@ export function Landing({
   incidents = [] 
 }) {
   const activeCount = incidents.filter(i => i.status !== 'Resolved').length;
-  const criticalCount = incidents.filter(i => i._priority?.label === 'critical').length;
+  const criticalCount = incidents.filter(i => i.status !== 'Resolved' && (i._priority?.label || '').toLowerCase() === 'critical').length;
   const resolvedCount = incidents.filter(i => i.status === 'Resolved').length;
   const handleOpenWorkspace = onEnterWorkspace || onExploreMap;
 
@@ -48,9 +49,7 @@ export function Landing({
           
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-brand-900 flex items-center justify-center shadow-inner">
-              <Map className="w-4 h-4 text-white" />
-            </div>
+            <BrandLogo size="md" variant="default" />
             <div>
               <span className="font-editorial font-semibold text-lg tracking-wide text-brand-900 block leading-tight">
                 FloodSignal

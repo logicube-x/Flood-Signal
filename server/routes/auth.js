@@ -24,6 +24,38 @@ export const getJwtSecret = () => {
   return secret;
 };
 
+/**
+ * Reusable Authentication Middleware
+ * Enforces verified session token on protected endpoints.
+ */
+export const requireAuth = (req, res, next) => {
+  try {
+    const token = req.cookies?.token;
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+
+    const decoded = jwt.verify(token, getJwtSecret());
+    req.user = decoded;
+    next();
+  } catch (error) {
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      console.error('Security Configuration Error in requireAuth:', error.message);
+      return res.status(500).json({ error: 'Server authentication configuration error' });
+    }
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
+
+/**
+ * Reusable Role-Based Authorization Middleware
+ * Restricts access to authorized municipal responders and administrators.
+ */
+export const requireResponder = (req, res, next) => {
+  if (!req.user || (req.user.role !== 'responder' && req.user.role !== 'admin')) {
+    return res.status(403).json({ error: 'Access denied: Municipal privileges required' });
+  }
+  next();
+};
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
@@ -46,6 +78,7 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     // Hardcode role to 'citizen' for all public registrations
+    // Explicitly ignores any client-supplied 'role' field
     const user = new User({
       name,
       email: email.toLowerCase(),
@@ -121,23 +154,14 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/me
-router.get('/me', async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ error: 'Not authenticated' });
-
-    const decoded = jwt.verify(token, getJwtSecret());
-    const user = await User.findById(decoded.userId).select('-passwordHash');
-    
+    const user = await User.findById(req.user.userId).select('-passwordHash');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json({ user });
   } catch (error) {
-    if (error.message && error.message.includes('JWT_SECRET')) {
-      console.error('Security Configuration Error in /me:', error.message);
-      return res.status(500).json({ error: 'Server authentication configuration error' });
-    }
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(500).json({ error: 'Server error retrieving user' });
   }
 });
 
@@ -145,18 +169,25 @@ router.get('/me', async (req, res) => {
 router.post('/logout', (req, res) => {
   res.cookie('token', '', {
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     expires: new Date(0)
   });
   res.json({ message: 'Logged out successfully' });
 });
 
 // PATCH /api/auth/profile - Safe profile editing for permitted fields (name)
-router.patch('/profile', async (req, res) => {
+router.patch('/profile', requireAuth, async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const allowedKeys = ['name'];
+    const submittedKeys = Object.keys(req.body);
+    const unauthorizedKeys = submittedKeys.filter(k => !allowedKeys.includes(k));
+    if (unauthorizedKeys.length > 0) {
+      return res.status(400).json({ 
+        error: `Modifying unauthorized fields is not permitted: ${unauthorizedKeys.join(', ')}` 
+      });
+    }
 
-    const decoded = jwt.verify(token, getJwtSecret());
     const { name } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -166,7 +197,7 @@ router.patch('/profile', async (req, res) => {
       return res.status(400).json({ error: 'Name cannot exceed 100 characters' });
     }
 
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     user.name = name.trim();
@@ -184,39 +215,8 @@ router.patch('/profile', async (req, res) => {
       }
     });
   } catch (error) {
-    if (error.message && error.message.includes('JWT_SECRET')) {
-      console.error('Security Configuration Error in profile update:', error.message);
-      return res.status(500).json({ error: 'Server authentication configuration error' });
-    }
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
     res.status(500).json({ error: 'Server error updating profile' });
   }
 });
-
-export const requireAuth = (req, res, next) => {
-  try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
-
-    const decoded = jwt.verify(token, getJwtSecret());
-    req.user = decoded;
-    next();
-  } catch (error) {
-    if (error.message && error.message.includes('JWT_SECRET')) {
-      console.error('Security Configuration Error in requireAuth:', error.message);
-      return res.status(500).json({ error: 'Server authentication configuration error' });
-    }
-    res.status(401).json({ error: 'Invalid or expired token' });
-  }
-};
-
-export const requireResponder = (req, res, next) => {
-  if (!req.user || (req.user.role !== 'responder' && req.user.role !== 'admin')) {
-    return res.status(403).json({ error: 'Access denied: Municipal privileges required' });
-  }
-  next();
-};
 
 export default router;

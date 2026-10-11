@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, Map, AlertTriangle, ShieldAlert, LogOut, User as UserIcon, Home, FileText, Settings } from 'lucide-react';
 import { logout } from '../../lib/auth';
+import { BrandLogo } from '../ui/BrandLogo';
 
 export function NavigationRail({ activePage, setActivePage, user, setUser }) {
   const navItems = [
@@ -31,9 +32,7 @@ export function NavigationRail({ activePage, setActivePage, user, setUser }) {
         className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-brand-800 hover:bg-brand-800/40 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-accent-teal flex items-center justify-center shadow-inner shrink-0">
-            <Map className="w-4 h-4 text-white" />
-          </div>
+          <BrandLogo size="md" variant="default" />
           <div className="hidden lg:block">
             <span className="font-editorial font-semibold text-lg tracking-wide block leading-none">FloodSignal</span>
             <span className="text-[9px] text-brand-400 font-mono uppercase tracking-wider block mt-0.5">Public Site ↗</span>

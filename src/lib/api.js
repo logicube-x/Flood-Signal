@@ -48,3 +48,41 @@ export async function fetchMyReports() {
   }
   return res.json();
 }
+
+export async function fetchResponders() {
+  const res = await fetch(`${API_URL}/responders`, {
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch responders list');
+  }
+  return res.json();
+}
+
+export async function checkDuplicates(lat, lng) {
+  const res = await fetch(`${API_URL}/reports/check-duplicates`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lat, lng })
+  });
+  if (!res.ok) {
+    return { potentialDuplicates: [] };
+  }
+  return res.json();
+}
+
+export function getReportPhotoUrl(reportId, photoKey) {
+  return `${API_URL}/reports/${reportId}/photos/${photoKey}`;
+}
+
+export async function fetchRainfallTelemetry(lat = 22.3072, lng = 73.1812) {
+  const res = await fetch(`${API_URL}/telemetry/rainfall?lat=${lat}&lng=${lng}`, {
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    throw new Error(`Telemetry request failed with HTTP ${res.status}`);
+  }
+  return res.json();
+}

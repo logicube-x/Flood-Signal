@@ -26,6 +26,8 @@ server/.env.*
 # Temporary session and testing artifacts
 cookies.txt
 *.local
+server/uploads/
+uploads/
 
 # OS & Editor metadata
 .DS_Store

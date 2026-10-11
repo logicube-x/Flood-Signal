@@ -10,6 +10,7 @@ import { MyReports } from './pages/MyReports';
 import { Profile } from './pages/Profile';
 import { fetchReports } from './lib/api';
 import { fetchMe, logout } from './lib/auth';
+import { BrandLogo } from './components/ui/BrandLogo';
 
 function App() {
   const [activePage, setActivePage] = useState('landing');
@@ -70,9 +71,7 @@ function App() {
   if (authLoading || (loading && incidents.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-surface-50 text-brand-700">
-        <div className="w-8 h-8 rounded bg-brand-900 flex items-center justify-center text-white mb-3 shadow">
-          <span className="font-editorial text-sm font-bold">FS</span>
-        </div>
+        <BrandLogo size="lg" variant="default" className="mb-3 animate-pulse" />
         <p className="text-sm font-editorial text-brand-900">Connecting to FloodSignal network...</p>
       </div>
     );

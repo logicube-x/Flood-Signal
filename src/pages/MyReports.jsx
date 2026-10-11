@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchMyReports } from '../lib/api';
+import { fetchMyReports, getReportPhotoUrl } from '../lib/api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { 
@@ -16,7 +16,8 @@ import {
   Droplets,
   Activity,
   Layers,
-  X
+  X,
+  Camera
 } from 'lucide-react';
 
 export function MyReports({ user, onNavigateToReport }) {
@@ -129,21 +130,24 @@ export function MyReports({ user, onNavigateToReport }) {
             <div className="flex items-center gap-1.5 text-xs">
               <span className="font-mono text-brand-500 uppercase text-[10px] mr-1 hidden sm:inline">Status:</span>
               {[
-                { id: 'all', label: 'All' },
-                { id: 'reported', label: 'Reported' },
-                { id: 'investigating', label: 'Investigating' },
-                { id: 'resolved', label: 'Resolved' }
+                { id: 'all', label: 'All', count: reports.length },
+                { id: 'reported', label: 'Reported', count: reports.filter(r => r.status === 'Pending Crew').length },
+                { id: 'investigating', label: 'Investigating', count: reports.filter(r => r.status === 'Investigating').length },
+                { id: 'resolved', label: 'Resolved', count: reports.filter(r => r.status === 'Resolved').length }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setStatusFilter(tab.id)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-sm transition-colors ${
+                  className={`px-2.5 py-1 text-xs font-medium rounded-sm transition-colors flex items-center gap-1.5 ${
                     statusFilter === tab.id
                       ? 'bg-brand-900 text-white'
                       : 'text-brand-600 hover:bg-surface-200 hover:text-brand-900'
                   }`}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1 rounded ${statusFilter === tab.id ? 'bg-white/20 text-white' : 'bg-surface-200 text-brand-700'}`}>
+                    {tab.count}
+                  </span>
                 </button>
               ))}
             </div>
@@ -318,11 +322,13 @@ export function MyReports({ user, onNavigateToReport }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-surface-50 p-3 border border-surface-200">
                     <span className="text-[10px] font-mono uppercase text-brand-500 block mb-1">Water Depth</span>
-                    <span className="text-lg font-editorial font-medium text-brand-900">{selectedReport.depth} cm</span>
+                    <span className="text-lg font-editorial font-medium text-brand-900">
+                      {typeof selectedReport.depth === 'number' ? `${selectedReport.depth} cm` : 'Unrecorded'}
+                    </span>
                   </div>
                   <div className="bg-surface-50 p-3 border border-surface-200">
                     <span className="text-[10px] font-mono uppercase text-brand-500 block mb-1">Reported Severity</span>
-                    <span className="capitalize text-sm font-medium text-brand-900">{selectedReport.severity}</span>
+                    <span className="capitalize text-sm font-medium text-brand-900">{selectedReport.severity || 'Unspecified'}</span>
                   </div>
                   <div className="bg-surface-50 p-3 border border-surface-200">
                     <span className="text-[10px] font-mono uppercase text-brand-500 block mb-1">Road Impassable</span>
@@ -337,6 +343,36 @@ export function MyReports({ user, onNavigateToReport }) {
                     </span>
                   </div>
                 </div>
+
+                {/* Attached Photographic Evidence */}
+                {Array.isArray(selectedReport.photos) && selectedReport.photos.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-brand-500 mb-2.5 flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5" />
+                      Attached Photo Evidence ({selectedReport.photos.length})
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      {selectedReport.photos.map((photo, i) => (
+                        <a 
+                          key={i}
+                          href={getReportPhotoUrl(selectedReport.id, photo.key)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="group border border-surface-200 bg-white p-1 rounded-sm overflow-hidden block hover:border-brand-900 transition-colors"
+                        >
+                          <img 
+                            src={getReportPhotoUrl(selectedReport.id, photo.key)} 
+                            alt={photo.originalName || `Incident Photo ${i + 1}`}
+                            className="w-full h-24 object-cover rounded-sm group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <span className="block text-[10px] text-brand-600 truncate font-mono mt-1 px-0.5">
+                            {photo.originalName || `Photo ${i + 1}`}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Geolocation */}
                 <div className="border border-surface-200 p-3.5 bg-surface-50 flex items-center justify-between text-xs">
@@ -359,20 +395,43 @@ export function MyReports({ user, onNavigateToReport }) {
                 {/* Status Timeline History */}
                 <div>
                   <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-brand-500 mb-3">
-                    Status Lifecycle Log
+                    Response Timeline & Lifecycle Log
                   </h4>
-                  <div className="space-y-3 border-l-2 border-surface-200 pl-4 ml-1">
+                  <div className="space-y-3.5 border-l-2 border-surface-200 pl-4 ml-1">
                     {selectedReport.statusHistory && selectedReport.statusHistory.length > 0 ? (
-                      selectedReport.statusHistory.map((hist, idx) => (
-                        <div key={idx} className="relative text-xs">
-                          <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-brand-900 border-2 border-white"></span>
-                          <div className="font-semibold text-brand-900">{hist.status}</div>
-                          <div className="text-brand-500 text-[11px] font-mono">
-                            {new Date(hist.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on {new Date(hist.timestamp || Date.now()).toLocaleDateString()}
+                      selectedReport.statusHistory.map((hist, idx) => {
+                        const isVerified = hist.actionType === 'VERIFIED';
+                        const isNote = hist.actionType === 'DISPATCH_NOTE';
+                        const isAssigned = hist.actionType === 'ASSIGNED' || hist.actionType === 'REASSIGNED';
+                        const dotColor = isVerified ? 'bg-accent-teal' : isNote ? 'bg-blue-500' : isAssigned ? 'bg-indigo-600' : 'bg-brand-900';
+
+                        return (
+                          <div key={idx} className="relative text-xs">
+                            <span className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white ${dotColor}`}></span>
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-brand-900">
+                                {hist.actionType === 'VERIFIED' ? 'Verified by Municipal Crew' :
+                                 hist.actionType === 'DISPATCH_NOTE' ? 'Municipal Field Update' :
+                                 hist.actionType === 'ASSIGNED' || hist.actionType === 'REASSIGNED' ? 'Crew Assigned' :
+                                 hist.status}
+                              </span>
+                              <span className="text-brand-400 text-[10px] font-mono">
+                                {new Date(hist.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(hist.timestamp || Date.now()).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {hist.note && (
+                              <p className="text-brand-600 bg-surface-50 p-2 border border-surface-100 rounded-sm mt-1 leading-relaxed text-[11px]">
+                                {hist.note}
+                              </p>
+                            )}
+                            {hist.updatedByName && (
+                              <div className="text-[10px] text-brand-400 mt-0.5">
+                                Logged by: {hist.updatedByName} {hist.updatedByRole === 'citizen' ? '(Citizen)' : '(Municipal Response)'}
+                              </div>
+                            )}
                           </div>
-                          {hist.note && <div className="text-brand-600 mt-0.5">{hist.note}</div>}
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <div className="relative text-xs">
                         <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-brand-900 border-2 border-white"></span>

@@ -2,6 +2,8 @@ import React from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Clock, Map as MapIcon, ArrowUpRight, User as UserIcon } from 'lucide-react';
 import { IncidentMap } from '../components/map/IncidentMap';
+import { EnvironmentalContextWidget } from '../components/EnvironmentalContextWidget';
+import { VADODARA_CENTER } from '../lib/config';
 
 export function Overview({ setActivePage, incidents, user }) {
   const sortedIncidents = [...incidents].sort((a, b) => {
@@ -13,7 +15,14 @@ export function Overview({ setActivePage, incidents, user }) {
 
   const activeCount = incidents.filter(i => i.status !== 'Resolved').length;
   const resolvedCount = incidents.filter(i => i.status === 'Resolved').length;
-  const criticalCount = incidents.filter(i => i._priority?.label === 'critical').length;
+  const criticalCount = incidents.filter(i => i.status !== 'Resolved' && (i._priority?.label || '').toLowerCase() === 'critical').length;
+
+  const getPriorityBadgeVariant = (label) => {
+    const l = (label || '').toLowerCase();
+    if (l === 'critical' || l === 'high') return 'danger';
+    if (l === 'moderate' || l === 'medium') return 'warning';
+    return 'success';
+  };
 
   return (
     <div className="flex flex-col h-full space-y-6">
@@ -60,15 +69,20 @@ export function Overview({ setActivePage, incidents, user }) {
            <IncidentMap incidents={incidents} onReportClick={() => setActivePage('report')} />
         </div>
 
-        {/* Priority Queue Area */}
-        <div className="w-full lg:w-1/3 flex flex-col h-[500px] lg:h-full bg-white border border-surface-200 shadow-sm relative">
-          <div className="p-4 border-b border-surface-200 bg-surface-50 flex justify-between items-center shrink-0">
-            <div>
-              <h3 className="font-editorial font-medium text-lg text-brand-900 leading-tight">Priority Queue</h3>
-              <p className="text-[10px] text-brand-500 uppercase tracking-wider mt-0.5">Live Incident Feed</p>
+        {/* Priority Queue & Environmental Context Column */}
+        <div className="w-full lg:w-1/3 flex flex-col gap-6">
+          {/* Environmental Context Widget */}
+          <EnvironmentalContextWidget coords={{ lat: VADODARA_CENTER[0], lng: VADODARA_CENTER[1] }} />
+
+          {/* Priority Queue Area */}
+          <div className="flex-1 flex flex-col min-h-[350px] bg-white border border-surface-200 shadow-sm relative">
+            <div className="p-4 border-b border-surface-200 bg-surface-50 flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="font-editorial font-medium text-lg text-brand-900 leading-tight">Priority Queue</h3>
+                <p className="text-[10px] text-brand-500 uppercase tracking-wider mt-0.5">Live Incident Feed</p>
+              </div>
+              <Badge variant="default" className="bg-white">{sortedIncidents.length} Total</Badge>
             </div>
-            <Badge variant="default" className="bg-white">{sortedIncidents.length} Total</Badge>
-          </div>
           
           <ul className="flex-1 overflow-y-auto divide-y divide-surface-200 no-scrollbar">
             {sortedIncidents.map(report => {
@@ -81,7 +95,7 @@ export function Overview({ setActivePage, incidents, user }) {
                     <span className={`font-medium text-sm pr-3 leading-tight ${report._priority?.isStale ? 'text-brand-700 opacity-70' : 'text-brand-900'} ${report.status === 'Resolved' ? 'line-through text-brand-400' : ''}`}>
                       {report.title}
                     </span>
-                    <Badge variant={pLabel === 'critical' || pLabel === 'high' ? 'danger' : pLabel === 'medium' ? 'warning' : 'success'} className="shrink-0">
+                    <Badge variant={getPriorityBadgeVariant(pLabel)} className="shrink-0">
                       {report._priority?.score || 0}
                     </Badge>
                   </div>
@@ -104,6 +118,7 @@ export function Overview({ setActivePage, incidents, user }) {
               </li>
             )}
           </ul>
+        </div>
         </div>
 
       </div>

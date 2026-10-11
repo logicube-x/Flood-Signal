@@ -3,19 +3,26 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
   body {
-    @apply bg-surface-50 text-brand-900 font-sans antialiased selection:bg-brand-900 selection:text-white;
+    @apply bg-surface-50 text-brand-900 font-sans antialiased selection:bg-brand-900 selection:text-white tracking-[-0.011em];
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-editorial text-brand-900 tracking-tight;
+    @apply font-editorial text-brand-900 tracking-[-0.022em];
   }
 }
 
 /* Leaflet Map Overrides for an Editorial Look */
 .leaflet-container {
   background: #E8E6DF !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif !important;
 }
 
 .leaflet-popup-content-wrapper {
