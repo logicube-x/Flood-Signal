@@ -36,6 +36,10 @@ export function EnvironmentalContextWidget({ coords = { lat: 22.3072, lng: 73.18
   const forecast6h = telemetry?.measurements?.rainfallForecast6h;
   const waterGauge = telemetry?.measurements?.waterLevelGauge;
   const isLive = telemetry?.isLive;
+  const isStale = telemetry?.isStale;
+  const isCached = telemetry?.isCached;
+  const providerType = telemetry?.providerType;
+  const warningMsg = telemetry?.warning;
 
   return (
     <div className="bg-white border border-surface-200 shadow-sm p-4 text-brand-900 flex flex-col justify-between">
@@ -54,6 +58,11 @@ export function EnvironmentalContextWidget({ coords = { lat: 22.3072, lng: 73.18
             <Badge variant="success" className="text-[9px] flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-accent-teal animate-pulse"></span>
               Live Telemetry
+            </Badge>
+          ) : isStale ? (
+            <Badge variant="warning" className="text-[9px] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-amber"></span>
+              {providerType === 'rate_limited' ? 'Cached (Rate-Limited)' : 'Cached Telemetry'}
             </Badge>
           ) : (
             <Badge variant="warning" className="text-[9px]">
@@ -97,6 +106,17 @@ export function EnvironmentalContextWidget({ coords = { lat: 22.3072, lng: 73.18
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Rate-limit or Cache Notice Banner if applicable */}
+          {isStale && (
+            <div className="px-2.5 py-1.5 bg-amber-50/80 border border-amber-200/60 rounded-sm text-[11px] text-amber-900 flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="leading-tight">
+                <span className="font-medium">External Provider Rate Limited (HTTP 429).</span>{' '}
+                <span className="text-amber-700">Displaying cached meteorological observation to conserve quota.</span>
+              </div>
+            </div>
+          )}
+
           {/* Rainfall Grid */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             {/* Precipitation Rate */}
@@ -111,7 +131,7 @@ export function EnvironmentalContextWidget({ coords = { lat: 22.3072, lng: 73.18
                       {rainfall.value}
                     </span>
                     <span className="text-[10px] font-semibold text-brand-600 uppercase">
-                      {rainfall.unit}
+                      {rainfall.unit || 'mm/h'}
                     </span>
                   </div>
                 ) : (
@@ -135,7 +155,7 @@ export function EnvironmentalContextWidget({ coords = { lat: 22.3072, lng: 73.18
                       {forecast6h.value}
                     </span>
                     <span className="text-[10px] font-semibold text-brand-600 uppercase">
-                      {forecast6h.unit}
+                      {forecast6h.unit || 'mm'}
                     </span>
                   </div>
                 ) : (
@@ -174,7 +194,7 @@ export function EnvironmentalContextWidget({ coords = { lat: 22.3072, lng: 73.18
           <div className="pt-1 text-[9px] text-brand-400 flex items-center justify-between border-t border-surface-100">
             <span>Provider: {telemetry?.provider || 'Open-Meteo'}</span>
             <span>
-              Updated: {telemetry?.observationTimestamp ? new Date(telemetry.observationTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+              Observation: {telemetry?.observationTimestamp ? new Date(telemetry.observationTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
             </span>
           </div>
         </div>
